@@ -35,21 +35,22 @@ class LinearRegressionMethod():
                             'category_5'],
                              inplace=True,  axis=1)
         self.products.info()
-    
+        print(self.products)
+        self.y = self.products['price']
+        print(self.y)
+        remove_price = self.products.drop('price', axis =1)
+        self.X = remove_price
+
+
     def prep_data(self):
         vectorizer = TfidfVectorizer()
-        self.X = self.products['price']
-        self.y = self.products.drop('price', inplace=True,  axis=1)
-
         x_vector = vectorizer.fit_transform(self.X)
         y_vector = vectorizer.fit_transform(self.y)
-
-        return self.X, self.y
-
-    def data_extraction(self):
        
+        X = x_vector
+        y = y_vector
         
-        X_train, X_test, y_train, y_test = train_test_split(self.X, self.y, test_size=0.2, random_state=1)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=1)
 
         scaler = StandardScaler()
         X_train_std = scaler.fit_transform(X_train)
@@ -64,13 +65,9 @@ class LinearRegressionMethod():
     def run_linear_regress(self):
         self.load_data()
         self.prep_data()
-        self.data_extraction()
+        #self.data_extraction()
 
 
 if __name__ == "__main__":
     LinearRegress = LinearRegressionMethod()
     LinearRegress.run_linear_regress()
-    
-
-
-# %%
