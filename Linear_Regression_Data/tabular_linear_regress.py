@@ -1,6 +1,6 @@
 #%%
+#%%
 # Import Dependencies
-from re import X
 import numpy as np
 import os
 import pandas as pd
@@ -44,7 +44,7 @@ class LinearRegressionMethod():
 
     def prep_data(self):
         vectorizer = TfidfVectorizer()
-        x_vector = vectorizer.fit_transform(self.X)
+        x_vector = vectorizer.fit_transform([self.X, self.y])
         y_vector = vectorizer.fit_transform(self.y)
        
         X = x_vector
@@ -71,3 +71,4 @@ class LinearRegressionMethod():
 if __name__ == "__main__":
     LinearRegress = LinearRegressionMethod()
     LinearRegress.run_linear_regress()
+    
