@@ -3,11 +3,13 @@
 import pandas as pd
 import numpy as np
 import os
+from tqdm import tqdm
 
 
-class CleanTabular():
-    def __init__(self, products):
+class CleanTabularandImages():
+    def __init__(self, products, images):
         self.products = products
+        self.images = images
         print('Unclean Data:')
         print( self.products.info())
         self.city = []
@@ -25,7 +27,7 @@ class CleanTabular():
         print('Dropping unnecessary columns')
         self.products.drop('Unnamed: 0', inplace=True, axis=1)
         self.products.drop('category', inplace=True,  axis=1)
-        self.products.drop('location', inplace=True,  axis=1)
+        #self.products.drop('location', inplace=True,  axis=1)
         
     
     """
@@ -116,31 +118,64 @@ class CleanTabular():
         self.products['Region'] = self.region
         self.products.drop('location',  axis=1)
          
+    def clean_description(self):
+        self.products['product_description'].str.replace(r'/[^a-zA-Z0-9]/g', '', regex = True)
+        print(self.products['product_description'][0])    
+    
+    '''This function matches the 'id' column within the Products.csv to the 
+    'product_id' column within the Images.csv so the corresponding pictures can be matched to
+    the products''' 
+    
+    def match_pic_id(self):
+        self.image_list = []
+        id_list = list(self.products['id'])
+        for i in tqdm(range(len(id_list)), "Matching Product ID to Images:"):
+            id = str(id_list[i])
+            matching_id = self.images['product_id'].str.contains(id)
+            image_match = self.images['id'][matching_id]
+            image_match = list(image_match)
+            image_list = {'image_matches': image_match,
+                        'product_id': id}
+            self.image_list.append(image_list)
+        self.image_matches = pd.DataFrame.from_dict(self.image_list)
+        print(self.image_matches.info())
+
+    ''' This function will add the image column for the list of images related to the product. 
+    The product_id in the products df was checked against the id in the image df '''
+    def merge_image_columns(self):
+        self.products['images'] = self.image_matches['image_matches']
+        print(self.products.info())
         
+    
     ''' This function was designed to run the cleaner and run all the functions embodied above
      and ensures they run in the right order.'''    
     def run_cleaner(self):
         self.drop_duplicates()
         self.split_location() 
         self.split_categories()
+        self.clean_description()
         self.format_prices()
         self.remove_null()
         self.drop_columns()
+        self.match_pic_id()
+        self.merge_image_columns()
         print("Data was succesfully cleaned. Final output: \n")
         print(self.products.info())
         print(self.products.head())
 
 if __name__ == "__main__":
+    os.chdir('/home/jazz/Documents/AiCore_Projects/Facebook-Marketplace-Ranking/data')
     data_path = os.getcwd()
     
     # read data from file
+
     print("Reading Data from Directory")
     products = pd.read_csv(f"{data_path}/Products.csv", lineterminator="\n")
-    
+    images = pd.read_csv(f"{data_path}/Images.csv")
 
     # perform cleaning
     print("Let's clean our data")
-    Cleaner = CleanTabular(products)
+    Cleaner = CleanTabularandImages(products , images)
     Cleaner.run_cleaner()
 
     # send the data to file
@@ -150,10 +185,3 @@ if __name__ == "__main__":
     Cleaner.products.to_json(r'clean_fb_marketplace_products.json')
     print("Successfully cleaned and saved data")
   
-
-
-
-# %%
-
-
-# %%
