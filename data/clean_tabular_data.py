@@ -65,12 +65,16 @@ class CleanTabularandImages():
         self.products.drop_duplicates(subset=columns, keep="first")
         
 
-    ''' This function splits the categories into their own columns for future analysis'''
-    def split_categories(self):
+    ''' This function splits the categories into their own columns and groups the main
+    category into separate classification numbers'''
+
+    def classify_categories(self):
         print('Splitting the categorical info ...\n')
         self.products['subcategory_1']= self.products['category'].str.split('/').str[1]   
         self.products['main_category'] = self.products['category'].str.split('/').str[0]
-
+        self.products['cat_codes'] = self.products['main_category'].astype('category').cat.codes
+        
+        
     ''' This function splits the city and region into separate columns and allows for the removal
         of entries that do not have a city and regions in the drop_columns function'''
     def split_location(self):
@@ -139,7 +143,7 @@ class CleanTabularandImages():
         self.clean_text_descriptions()
         self.format_prices()
         self.match_pic_id()
-        self.split_categories()
+        self.classify_categories()
         self.remove_null()
         self.create_image_column()
         self.drop_columns()
@@ -151,7 +155,7 @@ class CleanTabularandImages():
 
 
 if __name__ == "__main__":
-    os.chdir('/home/jazz/Documents/AiCore_Projects/Facebook-Marketplace-Ranking/data')
+    os.chdir('/home/jazzy/Documents/AiCore_Projects/Facebook-Marketplace-Ranking/data')
     data_path = os.getcwd()
     
     # read data from file
@@ -169,10 +173,8 @@ if __name__ == "__main__":
     print("Saving cleaned data to Directory ")
     #os.chdir('data/')
     Cleaner.products.to_csv(r'clean_fb_marketplace_products.csv')
-    Cleaner.products.to_csv(r'clean_image_data.csv')
     Cleaner.products.to_json(r'clean_fb_marketplace_products.json')
     Cleaner.products.to_pickle(r'clean_fb_marketplace_products.pkl')
     print("Successfully cleaned and saved data")
-  
 
 
