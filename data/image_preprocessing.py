@@ -117,8 +117,7 @@ class ClassifierLinRegress():
     def __init__(self, data):
         self.groupXY = []
         self.image_array  = data
-        self.features = []
-        self.labels = []
+   
         
     def lin_regress_setup(self):
         print(self.image_array.info())
