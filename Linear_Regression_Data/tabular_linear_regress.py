@@ -1,16 +1,19 @@
 #%%
-#%%
 # Import Dependencies
+from re import X
 import numpy as np
 import os
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
+from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import r2_score
+from sklearn import metrics
 from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.linear_model import Lasso
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.compose import make_column_transformer
 from sklearn.linear_model import SGDClassifier
 from sklearn.model_selection import GridSearchCV
 from sklearn.pipeline import Pipeline
@@ -19,56 +22,44 @@ class LinearRegressionMethod():
     def __init__(self):
        self.products = ''
     
-    def load_data(self):
+    def run_linear_regress(self):
         os.chdir('/home/jazz/Documents/AiCore_Projects/Facebook-Marketplace-Ranking/data')
    
         # Read Data from file
         print("Reading Data from Directory")
         self.products = pd.read_csv(f"clean_fb_marketplace_products.csv", lineterminator="\n")
+        self.data = self.products[['price']]
         
-        self.products.drop(['Unnamed: 0', 
-                            'id',
-                            'category_1',
-                            'category_2',
-                            'category_3',
-                            'category_4',
-                            'category_5'],
-                             inplace=True,  axis=1)
-        self.products.info()
-        print(self.products)
-        self.y = self.products['price']
-        print(self.y)
+        # Define matrix x and response vector y:
+        y = self.products.price
         remove_price = self.products.drop('price', axis =1)
-        self.X = remove_price
+        X = remove_price
 
-
-    def prep_data(self):
-        vectorizer = TfidfVectorizer()
-        x_vector = vectorizer.fit_transform([self.X, self.y])
-        y_vector = vectorizer.fit_transform(self.y)
-       
-        X = x_vector
-        y = y_vector
+        #Split into training and testing sets
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=1)
+    
+        # Make column transform to transform text columns of feature matrix
+        column_trans = make_column_transformer(
+        (TfidfVectorizer(), "product_name"),
+        (TfidfVectorizer(), "product_description"),
+        (TfidfVectorizer(), "location"))
         
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=1)
+       # define a pipeline
+        pipe = make_pipeline(column_trans, LinearRegression())
+        print(f'Making Pipeline : {pipe}')
 
-        scaler = StandardScaler()
-        X_train_std = scaler.fit_transform(X_train)
-        X_test_std = scaler.transform(X_test)
+       # Fit pipeline
+        fit = pipe.fit(X_train, y_train)
+        print(f"Fitting pipeline: {fit}")
 
-        linear_regression_model = LinearRegression().fit(X_train_std, y_train)
-        y_prediction = linear_regression_model.predict(X_test_std)
-        r2_score(y_test, y_prediction)
+        # Make prediction based on pipeline:
+        y_pred = pipe.predict(X_test)
+        print(f'Making predictions: {y_pred}')
 
-
-
-    def run_linear_regress(self):
-        self.load_data()
-        self.prep_data()
-        #self.data_extraction()
-
+        # Print Predictions
+        print(f'RMSE of model = {metrics.mean_squared_error(y_test, y_pred, squared = False)}')
+        print(f' R2 Score = {metrics.r2_score(y_test, y_pred)}')
 
 if __name__ == "__main__":
     LinearRegress = LinearRegressionMethod()
     LinearRegress.run_linear_regress()
-    
