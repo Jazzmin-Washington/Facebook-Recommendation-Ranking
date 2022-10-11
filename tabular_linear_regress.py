@@ -1,3 +1,5 @@
+#%%
+import os
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
@@ -15,32 +17,25 @@ from sklearn import metrics
 class LinearRegressionMethod():
     def __init__(self):
         os.chdir('/home/jazzy/Documents/AiCore_Projects/Facebook-Marketplace-Ranking/data')
-        self.products = pd.read_csv(f"clean_fb_marketplace_products.csv", lineterminator="\n")
+        self.products = pd.read_csv(f"clean_fb_marketplace_no_split.csv", lineterminator="\n")
         
 
     def load_data(self):
-        self.products.drop(['Unnamed: 0', 
-                            'id',
-                            'main_category',
-                            'subcategory_1',
-                            'cat_codes',
-                            'image_1',
-                            'image_2'],
-                             inplace=True,  axis=1)
-        self.products.info()
-    
+        self.x_data = self.products[["product_name", "product_description", "location"]]
+        self.y_data = self.products['price']
+        print(self.x_data.info())
+        print(self.y_data.info())
     def run_data(self):
-        X = self.products.loc[:, ["product_name", "product_description", "County", "Region"]]
+        X = self.x_data
         
-        y = self.products['price']
+        y = self.y_data
 
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=1)
 
         column_trans =  make_column_transformer(
             (TfidfVectorizer(), 'product_name'),
             (TfidfVectorizer(), 'product_description'),
-            (TfidfVectorizer(), 'County'),
-            (TfidfVectorizer(), 'Region'))
+            (TfidfVectorizer(), 'location'))
 
         
         # define a pipeline
@@ -70,7 +65,4 @@ if __name__ == "__main__":
     LinearRegress = LinearRegressionMethod()
     LinearRegress.run_linear_regress()
     
-
-
-# %%
 
