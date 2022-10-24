@@ -39,11 +39,9 @@ class CNNBuild(torch.nn.Module):
             torch.nn.Linear(300, 128),
             torch.nn.ReLU(),
             torch.nn.Linear(128,13),
-            torch.nn.Softmax(dim=1)
             )
     def forward(self, X):
        conv2d= self.cnn_layers(X)
-       conv2d = conv2d.view(conv2d.shape[0], -1)
        print(conv2d.shape)
        return conv2d
       
@@ -53,14 +51,18 @@ class CNNBuild(torch.nn.Module):
             return self.forward(features)
 
 def train(model, epoch = 10):
-    witer = SummaryWriter()
+    writer = SummaryWriter()
     optimiser = torch.optim.SGD(model.parameters(), lr=0.01)
     batch_idx = 0
     for epochs in range(epoch):
         for batch in train_loader:
             features, labels = batch
             prediction = model(features)
-            labels = labels
+            print(f'Prediction shape: {prediction.shape} \n',
+                f'Prediction Length: {len(prediction)} \n', 
+                    f'Prediction Values; {prediction} \n ',
+                    f'Labels Shape: {labels.shape} \n',
+                    f'Labels: {labels}')
             loss = F.cross_entropy(prediction, labels)
             loss.backward()
             print(loss.item())
@@ -81,7 +83,5 @@ if __name__ == '__main__':
     model = CNNBuild()
     train(model)
             
-
-
 
 # %%
