@@ -44,11 +44,11 @@ class CNNBuild(torch.nn.Module):
        conv2d= self.cnn_layers(X)
        print(conv2d.shape)
        return conv2d
-      
-    
+
     def predict_probs(self, features):
         with torch.no_grad():
             return self.forward(features)
+ 
 
 def train(model, epoch = 10):
     writer = SummaryWriter()
@@ -58,18 +58,12 @@ def train(model, epoch = 10):
         for batch in train_loader:
             features, labels = batch
             prediction = model(features)
-            print(f'Prediction shape: {prediction.shape} \n',
-                f'Prediction Length: {len(prediction)} \n', 
-                    f'Prediction Values; {prediction} \n ',
-                    f'Labels Shape: {labels.shape} \n',
-                    f'Labels: {labels}')
             loss = F.cross_entropy(prediction, labels)
             loss.backward()
             print(loss.item())
+            train_accuracy = torch.sum(torch.argmax(prediction, dim=1) == labels).item()/len(labels)
             optimiser.step()
             optimiser.zero_grad()
-            train_accuracy = metrics.accuracy_score(
-                labels.cpu(), prediction.cpu())
             writer.add_scalar("Train Loss", loss.item(), batch_idx)
             writer.add_scalar("Train Accuracy", train_accuracy, batch_idx)
             batch_idx += 1
@@ -82,6 +76,5 @@ if __name__ == '__main__':
     train_loader = DataLoader(dataset, batch_size=32, shuffle=True)
     model = CNNBuild()
     train(model)
-            
 
 # %%
