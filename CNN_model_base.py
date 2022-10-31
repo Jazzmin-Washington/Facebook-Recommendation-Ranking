@@ -25,7 +25,7 @@ class CNNBuild(torch.nn.Module):
             torch.nn.Conv2d(8, 16, 7),
             torch.nn.ReLU(),
             torch.nn.Flatten(),
-            torch.nn.Linear(290400, 1200),
+            torch.nn.Linear(215296, 1200),
             torch.nn.ReLU(),
             torch.nn.Dropout(0.2),
             torch.nn.Linear(1200, 600),
@@ -79,4 +79,3 @@ if __name__ == '__main__':
     train_loader = DataLoader(dataset, batch_size=32, shuffle=True, num_workers = 1)
     model = CNNBuild()
     train(model)
-# %%
