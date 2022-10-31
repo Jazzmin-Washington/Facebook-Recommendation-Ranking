@@ -13,6 +13,10 @@ from sklearn.preprocessing import LabelEncoder
 from torch.utils.data import Dataset, DataLoader
 
 le = LabelEncoder()
+le = LabelEncoder()
+def repeat_channel(x):
+            return x.repeat(3, 1, 1)
+
 class FbMarketImageDataset(Dataset):
     def __init__(self, image_size:int=100,  decoder:dict = None,
                 transformer:transforms = None):
@@ -22,6 +26,7 @@ class FbMarketImageDataset(Dataset):
         self.data= data
         self.image_id = self.data['image_id'].to_list()
         self.labels= self.data['main_category'].to_list()
+        self.transformer = transformer
         
 
        
@@ -44,37 +49,53 @@ class FbMarketImageDataset(Dataset):
         pkl_file = open(decoder, 'rb')
         le_category = pickle.load(pkl_file)
         pkl_file.close()
-        self.decode = lambda x:le_category.inverse_transform([x])
-        self.encode = lambda x: le_category.transform([x])
+        self.encode = {y: x for (x, y) in enumerate(set(self.labels))}
+        self.decode = {x: y for (x, y) in enumerate(set(self.labels))}
 
         ''' 
         Runs Transformer and Sets Default Transformer values
         '''
 
-        if transformer == None:
-            self.transform = transforms.Compose([transforms.Resize(96),
-                                            transforms.CenterCrop(96), 
-                                            transforms.ToTensor(),
-                                            transforms.Normalize(mean=[0.4217, 0.3923, 0.3633],
-                                                                std=[0.3117, 0.2967, 0.2931])])
+      
+        if self.transformer is None:
+            self.transformer = transforms.Compose([
+                transforms.Resize(128),
+                transforms.CenterCrop(128),
+                transforms.RandomHorizontalFlip(p=0.3),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                std=[0.229, 0.224, 0.225]) # is this right?
+            ])
+
+            self.transformer_Gray = transforms.Compose([
+                transforms.Resize(128),
+                transforms.CenterCrop(128),
+                transforms.RandomHorizontalFlip(p=0.3),
+                transforms.ToTensor(),
+                transforms.Lambda(repeat_channel),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                    std=[0.229, 0.224, 0.225])
+        ])
+
                                 
     def __getitem__(self, index:int):
         label = self.labels[index]
-        label = self.encode(label)
-        label = torch.tensor([label]).to(dtype=torch.long)
-        image_id = self.image_id[index]
+        label = self.encode[label]
+        label = torch.as_tensor(label)
         os.chdir(f'{self.datapath}/clean_images')
-        image = Image.open(f'clean_{image_id}.jpg').convert('RGB')
-        feature = self.transform(image)
-        image.close()
-        print(index)
+        image = Image.open(f'clean_{self.image_id[index]}.jpg')
+        if image.mode != 'RGB':
+            feature = self.transformer_Gray(image)
+        else:
+            feature = self.transformer(image)
+
         return feature, label
 
     def __len__(self):
         return(len(self.data.image_id))
     
     def get_category(self, label:int):
-        category = self.decode(label)
+        category = self.decode[label]
         print(category)
         
 if __name__ == '__main__':
@@ -83,11 +104,10 @@ if __name__ == '__main__':
     new_fb.get_category(9)
 
     #Create Data Loader and Test
-    image_loader = DataLoader(new_fb, batch_size = 32, shuffle = True)
-    for batch in image_loader:
-        print(batch)
-        features, labels = batch
-        print(features.shape)
-        print(labels.shape)
-
-# %%
+    image_loader = DataLoader(new_fb, batch_size = 32, shuffle = True, num_workers = 1)
+    for i, (features,labels) in enumerate(image_loader):
+        print(features)
+        print(labels)
+        print(features.size())
+        if i == 0:
+            break
