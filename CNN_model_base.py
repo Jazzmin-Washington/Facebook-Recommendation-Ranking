@@ -24,10 +24,8 @@ class CNNBuild(torch.nn.Module):
             torch.nn.ReLU(),
             torch.nn.Conv2d(8, 16, 7),
             torch.nn.ReLU(),
-            torch.nn.Conv2d(16, 24, 7),
-            torch.nn.ReLU(),
             torch.nn.Flatten(),
-            torch.nn.Linear(146016, 1200),
+            torch.nn.Linear(290400, 1200),
             torch.nn.ReLU(),
             torch.nn.Dropout(0.2),
             torch.nn.Linear(1200, 600),
@@ -40,10 +38,8 @@ class CNNBuild(torch.nn.Module):
             torch.nn.ReLU(),
             torch.nn.Linear(128,13),
             )
-    def forward(self, X):
-       conv2d= self.cnn_layers(X)
-       print(conv2d.shape)
-       return conv2d
+    def forward(self, features):
+       return self.cnn_layers(features)
 
     def predict_probs(self, features):
         with torch.no_grad():
@@ -51,14 +47,19 @@ class CNNBuild(torch.nn.Module):
  
 
 def train(model, epoch = 10):
+    #device = torch.device("cuda:0" if (torch.cuda.is_available() and ngpu > 0) else "cpu")
+    #model.to(device)
     writer = SummaryWriter()
     optimiser = torch.optim.SGD(model.parameters(), lr=0.01)
+    criterion = torch.nn.CrossEntropyLoss()
     batch_idx = 0
     for epochs in range(epoch):
         for batch in train_loader:
             features, labels = batch
+            #features = features.to(device)
+            #labels = labels.to(device)
             prediction = model(features)
-            loss = F.cross_entropy(prediction, labels)
+            loss = criterion(prediction, labels)
             loss.backward()
             print(loss.item())
             train_accuracy = torch.sum(torch.argmax(prediction, dim=1) == labels).item()/len(labels)
@@ -72,9 +73,10 @@ def train(model, epoch = 10):
     torch.save(model.state_dict(), model_save_name)
 
 if __name__ == '__main__':
+    ngpu = 2
+    batch_size = 32
     dataset = FbMarketImageDataset()
-    train_loader = DataLoader(dataset, batch_size=32, shuffle=True)
+    train_loader = DataLoader(dataset, batch_size=32, shuffle=True, num_workers = 1)
     model = CNNBuild()
     train(model)
-
 # %%
