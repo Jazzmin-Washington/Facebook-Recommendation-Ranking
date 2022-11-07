@@ -27,7 +27,7 @@ class ResnetCNN(torch.nn.Module):
                 parameter.requires_grad = True
 
         self.resnet50.fc = torch.nn.Sequential(
-            torch.nn.Linear(3163584, 512),
+            torch.nn.Linear(3163584, 512), # Need to change the first number
             torch.nn.ReLU(),
             torch.nn.Dropout(),
             torch.nn.Linear(512, 256),
