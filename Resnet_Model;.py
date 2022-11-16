@@ -28,7 +28,7 @@ class ResnetCNN(torch.nn.Module):
         output_fc = self.resnet50.fc.in_features
 
         self.resnet50.fc = torch.nn.Sequential(
-            torch.nn.Linear(output_fc, 512), # Need to change the first number
+            torch.nn.Linear(output_fc, 512),
             torch.nn.ReLU(),
             torch.nn.Dropout(),
             torch.nn.Linear(512, 256),
