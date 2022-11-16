@@ -171,7 +171,149 @@ ________________________________________________________________________________
     - image_array
 _______________________________________________________________________________________________________________________
 ### Perform Elementary Analysis of Data (Linear Regression and Logistic Regression)
+ 
+#### To become comfortable with PyTorch and learn basic Machine Learning Models, a linear regression and logistic regression to analyse our data. 
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+ 1. Linear Regression - Using `['product_name', 'product_description', 'location']` as the X-value and `price` as the Y value,
+ 
+         def load_data(self):
+               self.x_data = self.products[["product_name", "product_description", "location"]]
+               self.y_data = self.products['price']
+               print(self.x_data.info())
+              print(self.y_data.info())
+ 1a.  Using `scikit-learn` module, X and Y were split into test and train sets. 
+ 
+           def run_data(self):
+               X = self.x_data
+
+               y = self.y_data
+
+               X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=1)
+               
+1b. A `TfidVectorizer` was used to analyse the text in our X-values to convert them into values. 
+                      
+                      column_trans =  make_column_transformer(
+                          (TfidfVectorizer(), 'product_name'),
+                          (TfidfVectorizer(), 'product_description'),
+                          (TfidfVectorizer(), 'location'))
+
+1c. Linear Regression were then run using `scikit-learn` or `sklearn` by creating a pipeline followed by fitting the pipeline and then running a prediction.
+
+               # define a pipeline
+               pipe = make_pipeline(column_trans, LinearRegression())
+               print(f'Making Pipeline : {pipe}')
+
+              # Fit pipeline
+               fit = pipe.fit(X_train, y_train)
+               print(f"Fitting pipeline: {fit}")
+
+               # Make prediction based on pipeline:
+               y_pred = pipe.predict(X_test)
+               print(f'Making predictions: {y_pred}')
+
+               # Print Predictions
+               print('Mean Absolute Error:', metrics.mean_absolute_error(y_test, y_pred))
+               print('Mean Squared Error:', metrics.mean_squared_error(y_test, y_pred))
+               print('Root Mean Squared Error:', metrics.r2_score(y_test, y_pred))
+
+1d. Results:
 
 
+![image](https://user-images.githubusercontent.com/102431019/202288371-01959b20-443b-4efd-b9c3-fcbc7d1ba96f.png)
 
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
+2. Logistic Regression - Image Classifier - Using `image_array` column as features and `cat_codes` as label values, a logistic regression was run to create classification report using `sklearn` module. 
+
+2a. First, the `main_category` column was used to create a `cat_codes` column by using sklearn's `Label Encoder`. This file was then saved for future use as `image_decoder.pkl`. 
+
+       le = LabelEncoder
+       class ClassifierLogRegress():
+           def __init__(self, data):
+               self.groupXY = []
+               self.image_array  = data 
+               pkl_file = open('image_decoder.pkl', 'rb')
+               self.le_category = pickle.load(pkl_file)
+               pkl_file.close()
+               self.image_array['cat_codes'] = self.le_category.transform(self.image_array['main_category'].astype('category'))   
+               self.image_array = self.image_array.sort_values('cat_codes', ascending = True)
+               print(self.image_array.head(4))
+
+2b. `image_array` was then set to features and the corresponding `cat_codes` was then set to labels corresponding to X, Y values, respectively. Features and labels were then tupled together and appended to a list.
+
+       for i in range(len(self.image_array)):
+                   features = self.image_array['image_array'][i]
+                   labels = self.image_array['cat_codes'][i]
+                   grouped = (features, labels)
+                   create_tuple = tuple(grouped)
+                   self.groupXY.append(create_tuple)
+                   
+2c. The resulting X,Y array needed to be formatted for the image size using `np.zeros` 
+       
+       n = len(self.groupXY)
+        image_size = 100
+        array_size = int((image_size **2)*3)
+        self.X = np.zeros((n, array_size))
+        self.y = np.zeros(n)
+
+        for arrays in range(n):
+            features, labels = self.groupXY[arrays]
+            self.X[arrays, :] = features
+            self.y[arrays] = labels
+            
+  2d. Using `sklearn` module, X and Y were then split into train and test sets before being fit and used to predict labels given the features. This makes a very rudimentary image classifer. 
+  
+         def run_logreg_class(self): 
+               model = LogisticRegression(max_iter=100)
+               X_train, X_test, y_train, y_test = train_test_split(self.X, self.y, test_size=0.3,random_state=0)
+               model.fit(X_train, y_train)
+               pred = model.predict(X_test)
+               print ('accuracy:', accuracy_score(y_test, pred))
+               print('report:', classification_report(y_test , pred))
+ 
+ 2e. Results: 
+ 
+ 
+ ![image](https://user-images.githubusercontent.com/102431019/202291314-7f8a3103-e678-4263-9c57-57f45fcf5448.png)
+
+_______________________________________________________________________________________________________________________
+### Create Image Dataset (`Image_Dataset.py`)
+
+#### An Image Dataset was created in order to build a dataloaders to load data for future Machine Learning Models.
+
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+1. A decoder and encoder needs to be created or loaded using saved `Label Encoder` values to allow easy conversion of category values to label values and vice versa. 
+2. Images were then processed and transformed using `transforms.compose` to undergo changes such as resizing, center crop, normalization and converting the resulting arrays into tensors
+3.`__getitem__` method was used to retrieve label values and feature (transformed image arrays) values for each set of data: 
+
+               def __getitem__(self, index:int):
+                      label = self.labels[index]
+                      label = self.encode[label]
+                      label = torch.as_tensor(label)
+                      os.chdir(f'{self.datapath}/clean_images')
+                      image = Image.open(f'clean_{self.image_id[index]}.jpg')
+                      if image.mode != 'RGB':
+                          feature = self.transformer_Gray(image)
+                      else:
+                          feature = self.transformer(image)
+
+                      return feature, label
+                      
+ 4. __len__ method was used to retrieve the length of the dataset
+ 
+         def __len__(self):
+               return(len(self.data.image_id))
+               
+ 5. The Image_Dataset was then tested to ensure data batches could be retrieved. 
+ 
+        image_loader = DataLoader(new_fb, batch_size = 32, shuffle = True, num_workers = 1)
+           for i, (features,labels) in enumerate(image_loader):
+               print(features)
+               print(labels)
+               print(features.size())
+               if i == 0:
+                   break
+_______________________________________________________________________________________________________
+### Building a Convolutional Neural Network (`CNN_model_base.py`)
+
+#### To understand the dynamics of neural networks, a convolution network was built to classify images
