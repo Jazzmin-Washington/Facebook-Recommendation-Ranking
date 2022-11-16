@@ -181,6 +181,7 @@ ________________________________________________________________________________
                self.y_data = self.products['price']
                print(self.x_data.info())
               print(self.y_data.info())
+              
  1a.  Using `scikit-learn` module, X and Y were split into test and train sets. 
  
            def run_data(self):
@@ -383,3 +384,4 @@ ________________________________________________________________________________
            train_loader = DataLoader(dataset, batch_size=16, shuffle=True, num_workers = 1)
            model = CNNBuild()
            train(model)
+4. Results: 
