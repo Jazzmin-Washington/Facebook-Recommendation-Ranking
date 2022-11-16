@@ -16,14 +16,14 @@ ________________________________________________________________________________
 ### Preparing Product Data for Analysis ('clean_tabular_data.py')
 
 #### To make sure the data is usable, several methods were used to clean the data:
-'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''' 
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''' ''''''
  - Checked and remove any duplicates in the data.
       
              def drop_duplicates(self):
                   print("Removing duplicates... \n")
                   columns = ["image_id"]
                   self.images_products.drop_duplicates(subset=columns, keep="first")        
-'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''' 
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''' 
  - Format the`price`column by removing the £ symbol and ensuring the price is a numerical float, As well as, removing any outliers that may skew the data
        
               def format_prices(self, max_price: int = 10000, min_price: int = 0.1):
@@ -35,7 +35,7 @@ ________________________________________________________________________________
                 # Remove outliers
                 self.images_products = self.images_products[self.images_products["price"] > min_price]
                 self.images_products = self.images_products[self.images_products["price"] < max_price]
-'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''       
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''' ''''''''''      
   - The location was split into `Region` and `County` for clear visualisatio. Then the `location` column was then removed. 
        
               def split_location(self):
@@ -43,7 +43,7 @@ ________________________________________________________________________________
                 self.images_products['County'] = self.images_products['location'].str.split(',').str[1]
                 self.images_products['Region'] = self.images_products['location'].str.split(',').str[0]
                 self.images_products.drop('location', inplace=True,  axis=1)
-'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''                     
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''' ''''''''''                    
  - Characters that were not ASCII characters were then removed because the models would not be able to interpret these (i.e. emojis)
       
             def clean_text_descriptions(self):
@@ -274,7 +274,7 @@ ________________________________________________________________________________
  2e. Results: 
  
  
- ![image](https://user-images.githubusercontent.com/102431019/202291314-7f8a3103-e678-4263-9c57-57f45fcf5448.png)
+![image](https://user-images.githubusercontent.com/102431019/202295186-cb35d1ea-70a4-49c8-be42-e3f242e2b151.png)
 
 _______________________________________________________________________________________________________________________
 ### Create Image Dataset (`Image_Dataset.py`)
@@ -283,7 +283,9 @@ ________________________________________________________________________________
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 1. A decoder and encoder needs to be created or loaded using saved `Label Encoder` values to allow easy conversion of category values to label values and vice versa. 
+
 2. Images were then processed and transformed using `transforms.compose` to undergo changes such as resizing, center crop, normalization and converting the resulting arrays into tensors
+
 3.`__getitem__` method was used to retrieve label values and feature (transformed image arrays) values for each set of data: 
 
                def __getitem__(self, index:int):
@@ -299,7 +301,7 @@ ________________________________________________________________________________
 
                       return feature, label
                       
- 4. __len__ method was used to retrieve the length of the dataset
+ 4. `__len__` method was used to retrieve the length of the dataset
  
          def __len__(self):
                return(len(self.data.image_id))
@@ -316,4 +318,68 @@ ________________________________________________________________________________
 _______________________________________________________________________________________________________
 ### Building a Convolutional Neural Network (`CNN_model_base.py`)
 
-#### To understand the dynamics of neural networks, a convolution network was built to classify images
+#### To understand the dynamics of neural networks, a convolution network was built to classify images. 
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+1. `torch.nn.Module` was used to create a CNNBuild class consisting of the architecture for the CNN network. A convolutional network consist of layers of `conv2d` followed by `torch.nn.linear` layers. As well as, `torch.nn.ReLU` layers inbetween each layer. A forward function is then created to process each batch of features through the model.  Finally, a probability is then produced. 
+
+       class CNNBuild(torch.nn.Module):
+           def __init__(self):
+               super().__init__()
+               self.cnn_layers = torch.nn.Sequential(
+                   torch.nn.Conv2d(3, 8, 7),
+                   torch.nn.ReLU(),
+                   torch.nn.Conv2d(8, 16, 7),
+                   torch.nn.ReLU(),
+                   torch.nn.Flatten(),
+                   torch.nn.Linear(215296, 1200),
+                   torch.nn.ReLU(),
+                   torch.nn.Linear(1200, 600),
+                   torch.nn.ReLU(),
+                   torch.nn.Linear(600, 300),
+                   torch.nn.ReLU(),
+                   torch.nn.Linear(300, 128),
+                   torch.nn.ReLU(),
+                   torch.nn.Linear(128,13),
+                   )
+           def forward(self, features):
+              return self.cnn_layers(features)
+
+           def predict_probs(self, features):
+               with torch.no_grad():
+                   return self.forward(features)
+
+2. `def train(model, epoch = 10)` is created to train the model. A summary writer, optimiser and criterion is passed into the model to allow for tuning purposes. Both accuracy and loss values are kept and graphed using `TensforFlow`. 
+
+       def train(model, epoch = 10):
+           #device = torch.device("cuda:0" if (torch.cuda.is_available() and ngpu > 0) else "cpu")
+           #model.to(device)
+           writer = SummaryWriter()
+           optimiser = torch.optim.SGD(model.parameters(), lr=0.01)
+           criterion = torch.nn.CrossEntropyLoss()
+           batch_idx = 0
+           for epochs in range(epoch):
+               for batch in train_loader:
+                   features, labels = batch
+                   #features = features.to(device)
+                   #labels = labels.to(device)
+                   prediction = model(features)
+                   loss = criterion(prediction, labels)
+                   loss.backward()
+                   print(loss.item())
+                   train_accuracy = torch.sum(torch.argmax(prediction, dim=1) == labels).item()/len(labels)
+                   optimiser.step()
+                   optimiser.zero_grad()
+                   writer.add_scalar("Train Loss", loss.item(), batch_idx)
+                   writer.add_scalar("Train Accuracy", train_accuracy, batch_idx)
+                   batch_idx += 1
+
+               model_save_name = f'{path}/image_model_evaluation/image_cnn.pt'
+               torch.save(model.state_dict(), model_save_name)
+
+3. Finally, the dataloader is created to iterate through each of the batches. 
+
+        if __name__ == '__main__':
+           dataset = FbMarketImageDataset()
+           train_loader = DataLoader(dataset, batch_size=16, shuffle=True, num_workers = 1)
+           model = CNNBuild()
+           train(model)
