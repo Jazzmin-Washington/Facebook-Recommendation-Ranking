@@ -29,7 +29,6 @@ class FbMarketImageDataset(Dataset):
         self.transformer = transformer
         
 
-       
         ''' 
         Sets up Default Decoder
         '''
